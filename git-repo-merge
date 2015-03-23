@@ -1,0 +1,66 @@
+#!/bin/bash
+# 
+# 
+
+usage() {
+    echo "$0 <src-repo> [src-repo ...] <dst-repo>"
+}
+
+if [ $# -lt 2 ]; then
+    usage >&2
+    exit 1
+fi
+
+while [ $# -gt 1 ]; do
+    src_repos="$src_repos $1"
+    shift
+done
+dst_repo=$1
+
+# Check destination is a git repo
+if [ ! -d $dst_repo/.git ]; then
+    echo "$dst_repo is not a git repository - initialise it!"
+    exit 1
+fi
+
+# Chech each source is a git repo
+for src_repo in $src_repos; do
+    if [ ! -d $src_repo/.git ]; then
+        echo "$src_repo is not a git repository - what do you expect me to do?"
+        exit 1
+    fi
+done
+
+temp_file=$(mktemp)
+
+# For each source repo extract commit info
+for src_repo in $src_repos; do
+    pushd $src_repo > /dev/null
+        git checkout master
+        (git log --pretty=format:'%ct %H %s'; echo) | while read time hash subject; do
+            echo $time $hash $src_repo $subject >> $temp_file
+        done
+    popd > /dev/null
+done
+
+#sort $temp_file
+
+# Sort all commits by commit date/time, apply and merge
+sort $temp_file | while read time hash src_repo subject; do
+    patch_file=$(mktemp)
+
+    pushd $src_repo > /dev/null
+    git checkout $hash
+    git log -1 -p > $patch_file
+    popd > /dev/null
+
+    pushd $dst_repo > /dev/null
+    git apply < $patch_file
+    git add *
+    git commit --date=$time -m "$subject"
+    popd > /dev/null
+
+    rm $patch_file
+done
+
+rm $temp_file
