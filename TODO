@@ -1,0 +1,3 @@
+[ ] Interactive mode - allow modification of staging area just before committing
+
+[ ] Handle longer / multi-line commit messages present in the source repos

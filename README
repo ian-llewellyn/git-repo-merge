@@ -1,0 +1,11 @@
+git-repo-merge
+==============
+Written by: Ian Llewellyn
+
+git-repo-merge is a small bash script that does the laborious and error prone
+work that a human is not really fit to do. It's a simple bash script that will
+make your life easier if you need to merge some distributed components into one
+complete project.
+
+Usage:
+git-repo-merge <source-repo> [source-repo]* <destination-repo>
