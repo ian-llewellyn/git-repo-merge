@@ -2,10 +2,44 @@
 # 
 # 
 
-no_op="true"
+no_op="false"
 
 usage() {
-    echo "$0 <src-repo> [src-repo ...] <dst-repo>"
+    echo "Usage:"
+    echo "$0 [-n|--noop] <src-repo> [src-repo ...] <dst-repo>"
+}
+
+find_repo_base() {
+    input_dir=$1
+    input_dir=$(cd $input_dir; pwd)
+
+    if [ -d $input_dir/.git ]; then
+        git_base_dir=$input_dir
+    else
+        git_base_dir=$(cd $input_dir; git rev-parse --git-dir)
+        git_base_dir=$(dirname $git_base_dir)/
+    fi
+
+    echo $git_base_dir
+}
+
+find_sub_dir() {
+    input_dir=$1
+    input_dir=$(cd $input_dir; pwd)
+
+    if [ -d $input_dir/.git ]; then
+        git_base_dir=$input_dir
+    else
+        git_base_dir=$(cd $input_dir; git rev-parse --git-dir)
+        git_base_dir=$(dirname $git_base_dir)/
+    fi
+
+    sub_dir=${input_dir/$git_base_dir}
+
+    #echo $input_dir
+    #echo $git_base_dir
+    #echo -e "$input_dir\t$git_base_dir"
+    echo $sub_dir
 }
 
 if [ $# -lt 2 ]; then
@@ -14,13 +48,25 @@ if [ $# -lt 2 ]; then
 fi
 
 while [ $# -gt 1 ]; do
+    if [ "$1" == "-n" -o "$1" == "--noop" ]; then
+        no_op="true"
+        shift
+        continue
+    fi
+
+    if [ "$1" == "-h" -o "$1" == "--help" ]; then
+        usage
+        exit
+    fi
+
     src_repos="$src_repos $1"
     shift
 done
-dst_repo=$1
+dst_repo=$(find_repo_base $1)
+sub_dir=$(find_sub_dir $1)
 
 # Check destination is a git repo
-if [ ! -d $dst_repo/.git ]; then
+if ! (cd $dst_repo; git status > /dev/null 2>&1); then
     echo "$dst_repo is not a git repository - initialise it!"
     exit 1
 fi
@@ -64,8 +110,8 @@ sort $temp_file | while read time hash src_repo subject; do
     popd > /dev/null
 
     pushd $dst_repo > /dev/null
-    git apply < $patch_file
-    git add *
+    git apply --directory=$sub_dir --whitespace=fix < $patch_file
+    find . -path ./.git -prune -o -type f -print | xargs git add
     git commit --date=$time --author="$author" -F $message_file
     popd > /dev/null
 done
