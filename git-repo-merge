@@ -2,6 +2,8 @@
 # 
 # 
 
+no_op="true"
+
 usage() {
     echo "$0 <src-repo> [src-repo ...] <dst-repo>"
 }
@@ -42,6 +44,12 @@ for src_repo in $src_repos; do
         done
     popd > /dev/null
 done
+
+if [ "$no_op" == "true" ]; then
+    sort $temp_file
+    rm $temp_file
+    exit
+fi
 
 # Sort all commits by commit date/time, apply and merge
 message_file=$(mktemp)
