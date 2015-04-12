@@ -36,9 +36,6 @@ find_sub_dir() {
 
     sub_dir=${input_dir/$git_base_dir}
 
-    #echo $input_dir
-    #echo $git_base_dir
-    #echo -e "$input_dir\t$git_base_dir"
     echo $sub_dir
 }
 
