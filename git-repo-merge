@@ -39,6 +39,10 @@ find_sub_dir() {
     echo $sub_dir
 }
 
+find_deletes() {
+    git whatchanged -1 | grep -e '^:' | awk '$5 == "D" { print $6 }'
+}
+
 if [ $# -lt 2 ]; then
     usage >&2
     exit 1
@@ -82,7 +86,7 @@ temp_file=$(mktemp)
 for src_repo in $src_repos; do
     pushd $src_repo > /dev/null
         git checkout master
-        (git log --pretty=format:'%ct %H %s'; echo) | while read time hash subject; do
+        (git log --pretty=format:'%at %H %s'; echo) | while read time hash subject; do
             echo $time $hash $src_repo $subject >> $temp_file
         done
     popd > /dev/null
@@ -96,23 +100,26 @@ fi
 
 # Sort all commits by commit date/time, apply and merge
 message_file=$(mktemp)
-patch_file=$(mktemp)
 
 sort $temp_file | while read time hash src_repo subject; do
     pushd $src_repo > /dev/null
     git checkout $hash
     git log --pretty=format:'%B' -1 > $message_file
     author=$(git log --pretty=format:'%aN <%aE>' -1)
-    git log -1 -p > $patch_file
+    cp -a * $dst_repo/$sub_dir
+    deletes=$(find_deletes)
     popd > /dev/null
 
     pushd $dst_repo > /dev/null
-    git apply --directory=$sub_dir --whitespace=fix < $patch_file
-    find . -path ./.git -prune -o -type f -print | xargs git add
+    if [ -n "$deletes" ]; then
+        for file in $deletes; do
+            git rm $sub_dir$file
+        done
+    fi
+    find . -path ./.git -prune -o -type f -print0 | xargs -0 git add
     git commit --date=$time --author="$author" -F $message_file
     popd > /dev/null
 done
 
 rm $message_file
-rm $patch_file
 rm $temp_file
