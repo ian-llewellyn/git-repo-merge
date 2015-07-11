@@ -106,8 +106,9 @@ sort $temp_file | while read time hash src_repo subject; do
     git checkout $hash
     git log --pretty=format:'%B' -1 > $message_file
     author=$(git log --pretty=format:'%aN <%aE>' -1)
-    cp -a * $dst_repo/$sub_dir
     deletes=$(find_deletes)
+    test -d $dst_repo/$sub_dir || mkdir -p $dst_repo/$sub_dir
+    cp -a * $dst_repo/$sub_dir
     popd > /dev/null
 
     pushd $dst_repo > /dev/null
