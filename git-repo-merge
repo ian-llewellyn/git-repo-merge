@@ -36,7 +36,7 @@ find_sub_dir() {
 
     sub_dir=${input_dir/$git_base_dir}
 
-    echo $sub_dir
+    test -n "$sub_dir" && echo $sub_dir/
 }
 
 find_deletes() {
